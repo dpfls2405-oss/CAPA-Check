@@ -1,7 +1,8 @@
 import sys, os
-ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-if ROOT not in sys.path:
-    sys.path.insert(0, ROOT)
+_UTILS_DIR = os.path.dirname(os.path.abspath(__file__))
+_ROOT      = os.path.dirname(_UTILS_DIR)
+for _p in [_ROOT, _UTILS_DIR]:
+    if _p not in sys.path: sys.path.insert(0, _p)
 
 """
 parser.py — SCP / 생산실적 / 출고량 파일 파싱 유틸리티
@@ -206,7 +207,7 @@ def parse_shipment_csv(file_bytes: bytes) -> tuple:
     for enc in ["utf-16", "utf-8-sig", "cp949"]:
         try:
             df = pd.read_csv(io.BytesIO(file_bytes), encoding=enc,
-                             sep="\t", dtype=str, header=None)
+                             sep="	", dtype=str, header=None)
             if df.shape[1] > 5:
                 break
         except Exception:

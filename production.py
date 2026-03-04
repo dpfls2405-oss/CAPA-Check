@@ -1,7 +1,8 @@
 import sys, os
-ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-if ROOT not in sys.path:
-    sys.path.insert(0, ROOT)
+_PAGE_DIR = os.path.dirname(os.path.abspath(__file__))
+_ROOT     = os.path.dirname(_PAGE_DIR)
+for _p in [_ROOT, _PAGE_DIR, os.path.join(_ROOT, "utils")]:
+    if _p not in sys.path: sys.path.insert(0, _p)
 
 """
 production.py — 품목별/라인별 생산실적 분석
