@@ -1,0 +1,5 @@
+
+coverage_days: 14
+low_threshold: 80
+high_threshold: 120
+over_threshold: 200

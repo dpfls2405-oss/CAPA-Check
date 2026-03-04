@@ -1,50 +1,70 @@
+
 import streamlit as st
 import pandas as pd
+import yaml
+from src.logic import judge_ratio
 
-# 앱 제목 및 설정
-st.set_page_config(page_title="시디즈 평택 재고/CAPA 점검 시스템", layout="wide")
-st.title("📦 시디즈(평택) 통합 재고 점검 및 CAPA 분석")
+st.set_page_config(page_title="SIDIZ Pyeongtaek Inventory & CAPA", layout="wide")
 
-# 1. 데이터 업로드 섹션 (사이드바)
-with st.sidebar:
-    st.header("파일 업로드")
-    scp_file = st.file_uploader("다음달 SCP 계획 업로드", type=['xlsx', 'csv'])
-    line_perf_file = st.file_uploader("라인별 생산실적 업로드", type=['xlsx', 'csv'])
-    item_perf_file = st.file_uploader("품목별 생산실적 업로드", type=['xlsx', 'csv'])
-    
-    working_days = st.number_input("차월 영업일수 설정", value=21)
+st.title("📦 시디즈 평택 재고 점검 & CAPA 시스템")
 
-# 2. 데이터 처리 및 분석 로직
-if scp_file and line_perf_file and item_perf_file:
-    # 데이터 로드 (예시)
-    df_scp = pd.read_excel(scp_file)
-    df_line = pd.read_excel(line_perf_file)
-    df_item = pd.read_excel(item_perf_file)
+# Load settings
+with open("config/settings.yaml","r",encoding="utf-8") as f:
+    settings = yaml.safe_load(f)
 
-    # [로직 계산] 
-    # 1. 라인별 부하 계산 (Daily Load)
-    df_line['daily_load'] = df_line['target_qty'] / working_days
-    
-    # 2. 재고 적정성 계산
-    # (HTML 로직 참고: 익월 목표 / 2주치 실적)
-    # df_item['ratio'] = (df_item['next_target'] / df_item['half_actual']) * 100
+coverage_days = settings["coverage_days"]
+low_th = settings["low_threshold"]
+high_th = settings["high_threshold"]
+over_th = settings["over_threshold"]
 
-    # 3. 화면 구성 (Tabs)
-    tab1, tab2 = st.tabs(["📊 재고 과부족 점검", "⚡ 라인 CAPA 분석"])
+st.sidebar.header("기준 설정")
+st.sidebar.write(f"기준 소진일수: {coverage_days}일")
 
-    with tab1:
-        st.subheader("품목별 재고 건전성")
-        # 데이터프레임 시각화 (조건부 서식 적용 가능)
-        st.dataframe(df_item.style.background_gradient(subset=['ratio'], cmap='RdYlGn_r'))
+# Upload files
+master_file = st.file_uploader("품목 마스터 업로드", type=["xlsx","csv"])
+plan_file = st.file_uploader("SCP 계획 업로드", type=["xlsx","csv"])
+actual_file = st.file_uploader("생산실적 업로드", type=["xlsx","csv"])
 
-    with tab2:
-        st.subheader("라인별 생산 부하 현황")
-        # 차트 또는 지표로 표시
-        for index, row in df_line.iterrows():
-            col1, col2 = st.columns([1, 3])
-            col1.metric(row['line_name'], f"{row['daily_load']:.1f}대/일")
-            col2.progress(min(row['daily_load'] / 100, 1.0), text=f"부하율: {row['daily_load']}%")
+def read_any(file):
+    if file is None:
+        return None
+    if file.name.endswith(".csv"):
+        return pd.read_csv(file)
+    return pd.read_excel(file)
 
-else:
-    st.info("사이드바에서 SCP 계획 및 실적 파일을 업로드해주세요.")
-    # 기본 예시 데이터나 도움말 표시
+master = read_any(master_file)
+plan = read_any(plan_file)
+actual = read_any(actual_file)
+
+if master is None or plan is None or actual is None:
+    st.info("파일을 모두 업로드하면 계산이 시작됩니다.")
+    st.stop()
+
+# 최근 실적 평균 계산
+actual["date"] = pd.to_datetime(actual["date"])
+daily_avg = actual.groupby("item_code", as_index=False)["actual_qty"].mean()
+daily_avg["baseline_qty"] = daily_avg["actual_qty"] * coverage_days
+
+# 다음달 계획
+plan_sum = plan.groupby(["line","item_code"], as_index=False)["plan_qty"].sum()
+plan_sum.rename(columns={"plan_qty":"target_qty"}, inplace=True)
+
+df = plan_sum.merge(master, on="item_code", how="left")
+df = df.merge(daily_avg[["item_code","baseline_qty"]], on="item_code", how="left")
+
+df["ratio"] = (df["target_qty"] / df["baseline_qty"]) * 100
+df["status"] = df["ratio"].apply(lambda r: judge_ratio(r, low_th, high_th, over_th))
+
+st.subheader("라인별 요약")
+line_summary = df.groupby("line").agg(
+    target_qty=("target_qty","sum"),
+    baseline_qty=("baseline_qty","sum")
+).reset_index()
+
+line_summary["ratio"] = (line_summary["target_qty"]/line_summary["baseline_qty"])*100
+line_summary["status"] = line_summary["ratio"].apply(lambda r: judge_ratio(r, low_th, high_th, over_th))
+
+st.dataframe(line_summary, use_container_width=True)
+
+st.subheader("품목 상세")
+st.dataframe(df, use_container_width=True)
