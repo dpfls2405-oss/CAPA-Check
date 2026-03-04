@@ -1,3 +1,7 @@
+import sys, os
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if ROOT not in sys.path: sys.path.insert(0, ROOT)
+
 """
 dashboard.py — 전체 현황 요약 대시보드
 """

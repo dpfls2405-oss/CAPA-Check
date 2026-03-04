@@ -1,3 +1,7 @@
+import sys, os
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if ROOT not in sys.path: sys.path.insert(0, ROOT)
+
 """
 capa.py — 포장라인 CAPA 점검 (부하량 분석)
 """

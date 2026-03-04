@@ -1,3 +1,6 @@
+import sys, os
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
 import streamlit as st
 
 st.set_page_config(
@@ -63,15 +66,16 @@ with st.sidebar:
     st.caption("CAPA Check v1.0")
 
 # ── 페이지 라우팅 ──
-if page == "🏠  대시보드":
-    from pages import dashboard; dashboard.show()
-elif page == "📂  데이터 업로드":
-    from pages import upload; upload.show()
-elif page == "📊  재고 적정성 점검":
-    from pages import inventory; inventory.show()
-elif page == "⚡  라인 CAPA 점검":
-    from pages import capa; capa.show()
-elif page == "🔴  과소 품목 분석":
-    from pages import shortage; shortage.show()
-elif page == "📋  품목별 생산실적":
-    from pages import production; production.show()
+import importlib
+
+PAGE_MAP = {
+    "🏠  대시보드":       "pages.dashboard",
+    "📂  데이터 업로드":   "pages.upload",
+    "📊  재고 적정성 점검": "pages.inventory",
+    "⚡  라인 CAPA 점검":  "pages.capa",
+    "🔴  과소 품목 분석":  "pages.shortage",
+    "📋  품목별 생산실적": "pages.production",
+}
+
+mod = importlib.import_module(PAGE_MAP[page])
+mod.show()

@@ -1,3 +1,7 @@
+import sys, os
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if ROOT not in sys.path: sys.path.insert(0, ROOT)
+
 """
 parser.py — SCP / 생산실적 / 출고량 파일 파싱 유틸리티
 """
