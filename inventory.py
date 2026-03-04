@@ -1,6 +1,7 @@
 import sys, os
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-if ROOT not in sys.path: sys.path.insert(0, ROOT)
+if ROOT not in sys.path:
+    sys.path.insert(0, ROOT)
 
 """
 inventory.py — 포장라인별 재고 적정성 점검 (드릴다운)

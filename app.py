@@ -1,5 +1,8 @@
 import sys, os
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+# Streamlit Cloud: app.py 위치를 루트로 등록
+ROOT = os.path.dirname(os.path.abspath(__file__))
+if ROOT not in sys.path:
+    sys.path.insert(0, ROOT)
 
 import streamlit as st
 
@@ -10,13 +13,10 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# ── 공통 스타일 ──
 st.markdown("""
 <style>
 [data-testid="stSidebar"] { background: #1E3A5F; }
 [data-testid="stSidebar"] * { color: #E2E8F0 !important; }
-[data-testid="stSidebar"] .stSelectbox label,
-[data-testid="stSidebar"] .stRadio label { color: #93C5FD !important; }
 .metric-card {
     background: white; border-radius: 10px; padding: 14px 18px;
     box-shadow: 0 2px 8px rgba(0,0,0,0.08); border-top: 4px solid;
@@ -29,32 +29,26 @@ st.markdown("""
     font-size: 15px; font-weight: 800; color: #1E3A5F;
     border-left: 4px solid #2563EB; padding-left: 10px; margin: 16px 0 10px;
 }
-div[data-testid="stDataFrame"] { border-radius: 8px; overflow: hidden; }
 </style>
 """, unsafe_allow_html=True)
 
-# ── 사이드바 네비게이션 ──
 with st.sidebar:
     st.markdown("## ⚡ CAPA Check")
     st.markdown("### 시디즈(평택) 재고·라인 관리")
     st.markdown("---")
-
-    page = st.radio(
-        "메뉴",
-        ["🏠  대시보드",
-         "📂  데이터 업로드",
-         "📊  재고 적정성 점검",
-         "⚡  라인 CAPA 점검",
-         "🔴  과소 품목 분석",
-         "📋  품목별 생산실적"],
-        label_visibility="collapsed",
-    )
+    page = st.radio("메뉴", [
+        "🏠  대시보드",
+        "📂  데이터 업로드",
+        "📊  재고 적정성 점검",
+        "⚡  라인 CAPA 점검",
+        "🔴  과소 품목 분석",
+        "📋  품목별 생산실적",
+    ], label_visibility="collapsed")
     st.markdown("---")
     st.markdown("**분석 기준**")
-
     if "session" in st.session_state and st.session_state.session.get("loaded"):
         sess = st.session_state.session
-        st.success(f"✅ 데이터 로드됨")
+        st.success("✅ 데이터 로드됨")
         st.markdown(f"- 기준월: **{sess.get('base_month','?')}**")
         st.markdown(f"- 영업일(전월): **{sess.get('wd_prev','-')}일**")
         st.markdown(f"- 영업일(당월): **{sess.get('wd_curr','-')}일**")
@@ -65,17 +59,16 @@ with st.sidebar:
     st.markdown("---")
     st.caption("CAPA Check v1.0")
 
-# ── 페이지 라우팅 ──
-import importlib
-
-PAGE_MAP = {
-    "🏠  대시보드":       "pages.dashboard",
-    "📂  데이터 업로드":   "pages.upload",
-    "📊  재고 적정성 점검": "pages.inventory",
-    "⚡  라인 CAPA 점검":  "pages.capa",
-    "🔴  과소 품목 분석":  "pages.shortage",
-    "📋  품목별 생산실적": "pages.production",
-}
-
-mod = importlib.import_module(PAGE_MAP[page])
-mod.show()
+# ── 라우팅: 직접 import (importlib 미사용) ──
+if page == "🏠  대시보드":
+    from pages import dashboard; dashboard.show()
+elif page == "📂  데이터 업로드":
+    from pages import upload; upload.show()
+elif page == "📊  재고 적정성 점검":
+    from pages import inventory; inventory.show()
+elif page == "⚡  라인 CAPA 점검":
+    from pages import capa; capa.show()
+elif page == "🔴  과소 품목 분석":
+    from pages import shortage; shortage.show()
+elif page == "📋  품목별 생산실적":
+    from pages import production; production.show()
